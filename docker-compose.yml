@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Web UI Service
+  web-ui:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: scan-processor-ui
+    ports:
+      - "5555:5555"
+    volumes:
+      # Mount project directories for file access
+      - ./incoming:/app/incoming
+      - ./processing:/app/processing
+      - ./completed:/app/completed
+      - ./failed:/app/failed
+      - ./logs:/app/logs
+      - ./queue:/app/queue
+      - ./scripts:/app/scripts:ro
+      - ./prompts:/app/prompts:ro
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - PAPERLESS_URL=${PAPERLESS_URL:-https://paperless.redleif.dev}
+      - PAPERLESS_API_TOKEN=${PAPERLESS_API_TOKEN}
+      - PUSHOVER_USER=${PUSHOVER_USER}
+      - PUSHOVER_TOKEN=${PUSHOVER_TOKEN}
+    restart: unless-stopped
+    networks:
+      - scan-processor
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5555/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # MCP Server (optional - for remote Claude Code integration)
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: scan-processor-mcp
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./queue:/app/queue:ro
+    environment:
+      - MCP_SERVER_PORT=8003
+    restart: unless-stopped
+    networks:
+      - scan-processor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+networks:
+  scan-processor:
+    driver: bridge
+
+volumes:
+  queue-data:
+    driver: local

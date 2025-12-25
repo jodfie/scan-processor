@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.pytest_cache
+.coverage
+htmlcov
+
+# IDEs
+.vscode
+.idea
+*.swp
+
+# Testing
+tests/
+samples/
+.pytest_cache/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development
+.env.local
+*.log
+*.bak
+
+# Working directories (don't bake data into images)
+incoming/
+processing/
+completed/
+failed/
+logs/
+queue/*.db
+queue/*.db-journal
+
+# Build artifacts
+dist/
+build/
