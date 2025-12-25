@@ -8,3 +8,9 @@ PyYAML>=6.0.1
 
 # PDF Processing (used in classification and metadata extraction)
 PyPDF2>=3.0.1
+
+# Flask Web Application
+Flask>=3.0.0
+flask-socketio>=5.3.0
+eventlet>=0.33.0
+python-socketio>=5.10.0
