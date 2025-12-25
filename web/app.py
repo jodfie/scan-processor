@@ -324,7 +324,11 @@ def prompts():
         'classifier': prompts_dir / 'classifier.md',
         'medical': prompts_dir / 'medical.md',
         'expense': prompts_dir / 'expense.md',
-        'schoolwork': prompts_dir / 'schoolwork.md'
+        'schoolwork': prompts_dir / 'schoolwork.md',
+        'personal-medical': prompts_dir / 'personal-medical.md',
+        'personal-expense': prompts_dir / 'personal-expense.md',
+        'utility': prompts_dir / 'utility.md',
+        'auto': prompts_dir / 'auto.md'
     }
 
     # Check which files exist
