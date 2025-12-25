@@ -1,5 +1,8 @@
 # Development and Testing Dependencies for Scan Processor
 
+# Include core application dependencies
+-r requirements.txt
+
 # Testing Framework
 pytest>=7.4.0
 pytest-cov>=4.1.0          # Code coverage reporting
@@ -8,7 +11,6 @@ pytest-mock>=3.11.1        # Mocking support for pytest
 # Sample Document Generation
 Faker>=19.0.0              # Generate realistic fake data
 reportlab>=4.0.0           # Create PDF documents
-PyPDF2>=3.0.1              # PDF manipulation
 
 # Additional Testing Tools
 pytest-xdist>=3.3.0        # Parallel test execution (optional)
