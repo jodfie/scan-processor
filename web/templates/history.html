@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+
+{% block title %}Processing History - Scan Processor{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h2 class="text-3xl font-bold text-white">Processing History</h2>
+        <p class="mt-2 text-gray-400">Last 100 processed documents</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <h3 class="text-lg font-semibold text-white mb-4">Filters</h3>
+
+        <form method="GET" action="{{ url_for('history') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Status</label>
+                <select name="status" class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white">
+                    <option value="">All Statuses</option>
+                    <option value="success" {% if request.args.get('status') == 'success' %}selected{% endif %}>Success</option>
+                    <option value="failed" {% if request.args.get('status') == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Category</label>
+                <select name="category" class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white">
+                    <option value="">All Categories</option>
+                    <option value="MEDICAL" {% if request.args.get('category') == 'MEDICAL' %}selected{% endif %}>Medical</option>
+                    <option value="CPS_EXPENSE" {% if request.args.get('category') == 'CPS_EXPENSE' %}selected{% endif %}>CPS Expense</option>
+                    <option value="SCHOOLWORK" {% if request.args.get('category') == 'SCHOOLWORK' %}selected{% endif %}>Schoolwork</option>
+                    <option value="GENERAL" {% if request.args.get('category') == 'GENERAL' %}selected{% endif %}>General</option>
+                </select>
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- History Table -->
+    {% if history %}
+    <div class="bg-gray-800 rounded-lg border border-gray-700">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-gray-900">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Time
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Filename
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Category
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Processing Time
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Links
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700">
+                    {% for item in history %}
+                    <!-- Main Row -->
+                    <tr class="hover:bg-gray-700 cursor-pointer" onclick="toggleDetails('{{ item.id }}')">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            {{ item.created_at }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-300">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 transform transition-transform" id="arrow-{{ item.id }}">
+                                    <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                                </svg>
+                                {{ item.filename }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-900 text-blue-300">
+                                {{ item.category }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if item.status == 'success' %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-900 text-green-300">Success</span>
+                            {% elif item.status == 'failed' %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-red-900 text-red-300">Failed</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-yellow-900 text-yellow-300">{{ item.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            {% if item.processing_time_ms %}
+                            {{ (item.processing_time_ms / 1000) | round(2) }}s
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="flex items-center space-x-2">
+                                {% if item.paperless_id %}
+                                <a href="https://paperless.redleif.dev/documents/{{ item.paperless_id }}" target="_blank" class="text-blue-400 hover:text-blue-300" onclick="event.stopPropagation()">
+                                    Paperless
+                                </a>
+                                {% endif %}
+                                {% if item.basicmemory_path %}
+                                <span class="text-green-400">✓ Note</span>
+                                {% endif %}
+                                {% if item.status == 'failed' %}
+                                <button onclick="event.stopPropagation(); openErrorLogForFile('{{ item.filename }}', '{{ item.error_message | replace("'", "\\'") if item.error_message else "" }}')"
+                                        class="inline-flex items-center px-2 py-1 text-xs bg-red-900 hover:bg-red-800 text-red-200 rounded transition-colors"
+                                        title="View error details">
+                                    <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Error Log
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Expandable Details Row -->
+                    <tr id="details-{{ item.id }}" class="hidden bg-gray-900">
+                        <td colspan="6" class="px-6 py-6">
+                            <div class="space-y-6">
+                                <!-- Classification Section -->
+                                {% if item.classification_response %}
+                                <div>
+                                    <h4 class="text-lg font-semibold text-white mb-3 flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                        </svg>
+                                        Classification Response
+                                    </h4>
+                                    <pre class="bg-gray-800 border border-gray-700 rounded p-4 text-xs text-gray-300 overflow-auto max-h-64">{{ item.classification_response }}</pre>
+                                </div>
+                                {% endif %}
+
+                                <!-- Metadata Section -->
+                                {% if item.metadata_response %}
+                                <div>
+                                    <h4 class="text-lg font-semibold text-white mb-3 flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Metadata Extraction Response
+                                    </h4>
+                                    <pre class="bg-gray-800 border border-gray-700 rounded p-4 text-xs text-gray-300 overflow-auto max-h-64">{{ item.metadata_response }}</pre>
+                                </div>
+                                {% endif %}
+
+                                <!-- Files Created Section -->
+                                {% if item.files_created %}
+                                <div>
+                                    <h4 class="text-lg font-semibold text-white mb-3 flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Files Created
+                                    </h4>
+                                    <div class="bg-gray-800 border border-gray-700 rounded p-4">
+                                        <pre class="text-xs text-gray-300">{{ item.files_created }}</pre>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Actions -->
+                                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+                                    <button onclick="reprocessDocument('{{ item.filename }}')" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors">
+                                        🔄 Re-process Document
+                                    </button>
+                                    <button onclick="toggleDetails('{{ item.id }}')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors">
+                                        Close Details
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="flex justify-end">
+        <button onclick="exportToCSV()" class="px-6 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
+            Export to CSV
+        </button>
+    </div>
+    {% else %}
+    <div class="bg-gray-800 rounded-lg border border-gray-700 p-12 text-center">
+        <div class="text-6xl mb-4">📭</div>
+        <h3 class="text-xl font-semibold text-white mb-2">No History</h3>
+        <p class="text-gray-400">No documents match the selected filters</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Re-process Modal -->
+<div id="reprocess-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+    <div class="bg-gray-800 rounded-lg border border-gray-700 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-700">
+            <h3 class="text-xl font-bold text-white flex items-center">
+                <svg class="w-6 h-6 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Re-process Document
+            </h3>
+            <p class="mt-2 text-gray-400">Provide corrections or additional context for re-processing</p>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Document Info -->
+            <div class="bg-gray-900 rounded border border-gray-700 p-4">
+                <h4 class="font-semibold text-white mb-2">Document</h4>
+                <p id="reprocess-filename" class="text-gray-300 text-sm"></p>
+            </div>
+
+            <!-- Current Extraction Results -->
+            <div>
+                <h4 class="font-semibold text-white mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Current Extraction Results
+                </h4>
+                <div class="bg-gray-900 rounded border border-gray-700 p-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-400">Category:</span>
+                            <span id="current-category" class="text-white ml-2"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Status:</span>
+                            <span id="current-status" class="text-white ml-2"></span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-gray-400 text-sm">Extracted Metadata:</span>
+                        <pre id="current-metadata" class="mt-2 bg-gray-800 rounded p-3 text-xs text-gray-300 overflow-auto max-h-32"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Override Category -->
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Override Category (optional)
+                </label>
+                <select id="override-category" class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white">
+                    <option value="">Keep current category</option>
+                    <option value="MEDICAL">📋 Medical</option>
+                    <option value="CPS_EXPENSE">💰 Co-Parenting Expense</option>
+                    <option value="SCHOOLWORK">🎓 Schoolwork</option>
+                    <option value="GENERAL">📄 General</option>
+                </select>
+            </div>
+
+            <!-- Corrections / Additional Context -->
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Corrections / Additional Context
+                </label>
+                <textarea id="correction-notes" rows="6"
+                          class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm font-mono"
+                          placeholder="Examples:&#10;- The child name should be 'Jacob' not 'Jacob Michael'&#10;- This is from Dr. Smith at Pediatric Associates, not just 'Pediatric Associates'&#10;- The visit date is 2025-11-10, not 2025-10-11&#10;- This is a follow-up visit for the previous molluscum infection&#10;- Extract prescription details more carefully"></textarea>
+                <p class="mt-2 text-xs text-gray-500">
+                    💡 Tip: Be specific about what was wrong and what it should be. This context will be included in the re-processing prompts.
+                </p>
+            </div>
+
+            <!-- Reason for Re-processing -->
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Reason for Re-processing
+                </label>
+                <select id="reprocess-reason" class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white">
+                    <option value="wrong_category">Wrong category detected</option>
+                    <option value="incorrect_metadata">Incorrect metadata extraction</option>
+                    <option value="missing_info">Missing information</option>
+                    <option value="wrong_child">Wrong child identified</option>
+                    <option value="wrong_date">Wrong date extracted</option>
+                    <option value="other">Other (specified in notes)</option>
+                </select>
+            </div>
+
+            <!-- What Will Happen -->
+            <div class="bg-yellow-900 bg-opacity-20 border border-yellow-700 rounded p-4">
+                <h4 class="font-semibold text-yellow-300 mb-2 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    What will happen:
+                </h4>
+                <ul class="text-sm text-yellow-200 space-y-1 ml-7">
+                    <li>• Re-run classification with your corrections as context</li>
+                    <li>• Re-extract metadata using your guidance</li>
+                    <li>• Update or replace existing BasicMemory notes</li>
+                    <li>• Update Paperless document (if applicable)</li>
+                    <li>• Save new results with correction notes for audit trail</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="p-6 border-t border-gray-700 flex justify-end space-x-3">
+            <button onclick="closeReprocessModal()" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors">
+                Cancel
+            </button>
+            <button onclick="submitReprocess()" class="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors">
+                🔄 Re-process Document
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleDetails(itemId) {
+        const detailsRow = document.getElementById('details-' + itemId);
+        const arrow = document.getElementById('arrow-' + itemId);
+
+        if (detailsRow.classList.contains('hidden')) {
+            detailsRow.classList.remove('hidden');
+            arrow.style.transform = 'rotate(180deg)';
+        } else {
+            detailsRow.classList.add('hidden');
+            arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    let currentReprocessItem = null;
+
+    function reprocessDocument(filename) {
+        // Find the item data from the history
+        const historyItems = {{ history | tojson | safe }};
+        const item = historyItems.find(h => h.filename === filename);
+
+        if (!item) {
+            alert('Could not find document data');
+            return;
+        }
+
+        currentReprocessItem = item;
+
+        // Populate modal
+        document.getElementById('reprocess-filename').textContent = filename;
+        document.getElementById('current-category').textContent = item.category || 'Unknown';
+        document.getElementById('current-status').textContent = item.status || 'Unknown';
+
+        // Try to parse and display metadata from response
+        let metadata = 'No metadata available';
+        if (item.metadata_response) {
+            try {
+                const response = JSON.parse(item.metadata_response);
+                // Find JSON in response if it's wrapped in text
+                const jsonMatch = response.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const metadataObj = JSON.parse(jsonMatch[0]);
+                    metadata = JSON.stringify(metadataObj, null, 2);
+                }
+            } catch (e) {
+                metadata = 'Could not parse metadata';
+            }
+        }
+        document.getElementById('current-metadata').textContent = metadata;
+
+        // Reset form
+        document.getElementById('override-category').value = '';
+        document.getElementById('correction-notes').value = '';
+        document.getElementById('reprocess-reason').value = 'incorrect_metadata';
+
+        // Show modal
+        document.getElementById('reprocess-modal').classList.remove('hidden');
+    }
+
+    function closeReprocessModal() {
+        document.getElementById('reprocess-modal').classList.add('hidden');
+        currentReprocessItem = null;
+    }
+
+    function submitReprocess() {
+        if (!currentReprocessItem) return;
+
+        const corrections = {
+            override_category: document.getElementById('override-category').value,
+            notes: document.getElementById('correction-notes').value,
+            reason: document.getElementById('reprocess-reason').value
+        };
+
+        // Validate that user provided some guidance
+        if (!corrections.override_category && !corrections.notes.trim()) {
+            alert('Please provide either a category override or correction notes to guide the re-processing.');
+            return;
+        }
+
+        // Submit re-process request
+        fetch('/api/reprocess', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                filename: currentReprocessItem.filename,
+                corrections: corrections
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Re-processing started!\n\nDocument: ${currentReprocessItem.filename}\nStatus: ${data.message || 'Processing...'}`);
+                closeReprocessModal();
+                // Reload page to see updated history
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                alert(`Re-processing failed:\n${data.error}`);
+            }
+        })
+        .catch(error => {
+            alert(`Error submitting re-process request:\n${error}`);
+        });
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('reprocess-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeReprocessModal();
+        }
+    });
+
+    function exportToCSV() {
+        // Get current filter parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status') || '';
+        const category = urlParams.get('category') || '';
+
+        // Create CSV data from table
+        const table = document.querySelector('table');
+        if (!table) {
+            alert('No data to export');
+            return;
+        }
+
+        let csv = [];
+        const rows = table.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            const cols = row.querySelectorAll('td, th');
+            const rowData = [];
+            cols.forEach(col => {
+                rowData.push('"' + col.textContent.trim().replace(/"/g, '""') + '"');
+            });
+            csv.push(rowData.join(','));
+        });
+
+        // Download CSV
+        const csvContent = csv.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'processing_history_' + new Date().toISOString().split('T')[0] + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    function openErrorLogForFile(filename, dbErrorMessage) {
+        // Open the error log modal
+        const modal = document.getElementById('error-log-modal');
+        modal.classList.remove('hidden');
+
+        // Show the "Show All Errors" button since we're filtering
+        const showAllBtn = document.getElementById('show-all-errors-btn');
+        if (showAllBtn) {
+            showAllBtn.classList.remove('hidden');
+        }
+
+        // Filter errors for this specific file
+        const errors = window.errorLogService.getErrors().filter(error => {
+            // Check if error is related to this filename
+            if (error.message && error.message.includes(filename)) return true;
+            if (error.endpoint && error.endpoint.includes(filename)) return true;
+            if (error.response && JSON.stringify(error.response).includes(filename)) return true;
+            if (error.details && JSON.stringify(error.details).includes(filename)) return true;
+            return false;
+        });
+
+        const errorList = document.getElementById('error-list');
+        const subtitle = document.getElementById('error-log-subtitle');
+
+        // If we have runtime errors for this file, show them
+        if (errors.length > 0) {
+            subtitle.textContent = `${errors.length} error${errors.length !== 1 ? 's' : ''} for ${filename}`;
+            errorList.innerHTML = errors.map((error, index) => {
+                const typeColors = {
+                    'api': 'bg-blue-900 text-blue-200 border-blue-700',
+                    'websocket': 'bg-yellow-900 text-yellow-200 border-yellow-700',
+                    'uncaught': 'bg-red-900 text-red-200 border-red-700',
+                    'promise': 'bg-orange-900 text-orange-200 border-orange-700',
+                    'console': 'bg-gray-800 text-gray-200 border-gray-600'
+                };
+
+                const typeIcons = {
+                    'api': '🌐',
+                    'websocket': '🔌',
+                    'uncaught': '💥',
+                    'promise': '⚠️',
+                    'console': '📝'
+                };
+
+                const colorClass = typeColors[error.type] || 'bg-gray-800 text-gray-200 border-gray-600';
+                const icon = typeIcons[error.type] || '❓';
+
+                return `
+                    <div class="border ${colorClass} rounded-lg p-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-start space-x-3">
+                                <span class="text-2xl">${icon}</span>
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-bold text-white">${error.type.toUpperCase()}</span>
+                                        <span class="text-xs opacity-75">#${index + 1}</span>
+                                    </div>
+                                    <p class="text-xs opacity-75 mt-1">${new Date(error.timestamp).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <button onclick="copyError('${error.id}')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition-colors">
+                                Copy
+                            </button>
+                        </div>
+                        <div class="mb-3">
+                            <p class="font-mono text-sm">${escapeHtml(error.message)}</p>
+                        </div>
+                        ${error.type === 'api' ? `
+                            <div class="text-xs opacity-75 mb-2">
+                                <p><strong>Endpoint:</strong> ${escapeHtml(error.endpoint)}</p>
+                                <p><strong>Status:</strong> ${error.status} ${escapeHtml(error.statusText)}</p>
+                            </div>
+                        ` : ''}
+                        ${error.stack ? `
+                            <details class="mt-3">
+                                <summary class="cursor-pointer text-xs font-medium hover:text-white">Stack Trace</summary>
+                                <pre class="mt-2 text-xs bg-black bg-opacity-30 p-3 rounded overflow-x-auto">${escapeHtml(error.stack)}</pre>
+                            </details>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        } else if (dbErrorMessage) {
+            // No runtime errors, but we have the database error message
+            subtitle.textContent = `Processing error for ${filename}`;
+            errorList.innerHTML = `
+                <div class="border bg-red-900 text-red-200 border-red-700 rounded-lg p-4">
+                    <div class="flex items-start space-x-3 mb-3">
+                        <span class="text-2xl">💥</span>
+                        <div>
+                            <div class="font-bold text-white">PROCESSING ERROR</div>
+                            <p class="text-xs opacity-75 mt-1">From processing history</p>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <p class="font-mono text-sm">${escapeHtml(dbErrorMessage)}</p>
+                    </div>
+                    <div class="text-xs opacity-75 bg-red-950 bg-opacity-50 p-3 rounded mt-3">
+                        <p class="font-medium mb-1">ℹ️ Note:</p>
+                        <p>This error was captured during processing. Runtime errors captured by the error log service will appear here if the error occurs again.</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            // No errors found at all
+            subtitle.textContent = `No errors found for ${filename}`;
+            errorList.innerHTML = `
+                <div class="text-center text-gray-500 py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="mt-2 text-lg font-medium">No runtime errors logged</p>
+                    <p class="mt-1 text-sm">This file failed during processing, but no detailed error information is available in the error log.</p>
+                </div>
+            `;
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+---
+# Scan Processor Configuration
+
+# Paperless-NGX Configuration
+paperless:
+  url: https://paperless.redleif.dev
+  api_token_env: PAPERLESS_API_TOKEN
+
+# BasicMemory Configuration
+basicmemory:
+  cps_path: /home/jodfie/Vault/jodys-brain/CoparentingSystem
+  medical_template: CoparentingSystem/Medical/_Template_Medical.md
+  expense_template: CoparentingSystem/Expenses/_Template_Expense.md
+
+# Children Information
+children:
+  - name: Jacob
+    birth_year: 2019
+    grade: 1
+  - name: Morgan
+    birth_year: 2017
+    grade: 3
+
+# Co-parent Information
+coparent:
+  name: Stephanie
+  custody_split: 50/50
+
+# Pushover Notifications
+pushover:
+  user_key_env: PUSHOVER_USER
+  app_token_env: PUSHOVER_TOKEN
+  enabled: true
+
+# Processing Configuration
+processing:
+  # Retention days for completed files
+  retention_days: 7
+
+  # Maximum concurrent processing jobs
+  max_concurrent: 3
+
+  # Processing timeout in seconds
+  timeout_seconds: 300
+
+  # Automatically retry failed processing
+  auto_retry: true
+  max_retries: 2
+
+# Document Classification
+classification:
+  # Minimum confidence threshold for automatic processing
+  min_confidence: 0.70
+
+  # Categories that require clarification even with high confidence
+  always_clarify_for:
+    - MEDICAL  # Always confirm which child for medical
+
+# Paperless Tag Configuration
+paperless_tags:
+  medical:
+    - medical
+    - health
+  expense:
+    - expense
+    - cps
+    - reimbursable
+  schoolwork:
+    - schoolwork
+    - education
+  general:
+    - document
+
+# Web UI Configuration
+web_ui:
+  host: 0.0.0.0
+  port: 5000
+  debug: false
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: "[%(asctime)s] %(levelname)s - %(message)s"
+  processors_log: logs/processor.log
+  watcher_log: logs/watcher.log
+  web_log: logs/web.log
+  max_log_size_mb: 10
+  max_log_files: 5

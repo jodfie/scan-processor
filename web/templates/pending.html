@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Clarifications - Scan Processor{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h2 class="text-3xl font-bold text-white">Pending Clarifications</h2>
+        <p class="mt-2 text-gray-400">Documents that need your input to continue processing</p>
+    </div>
+
+    <!-- Pending Documents -->
+    {% if pending_docs %}
+    <div class="space-y-6">
+        {% for doc in pending_docs %}
+        <div class="bg-gray-800 rounded-lg border border-gray-700">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                <!-- Left: PDF Preview -->
+                <div class="p-6 border-b lg:border-b-0 lg:border-r border-gray-700">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white">Document Preview</h3>
+                        <div class="flex space-x-2">
+                            <button onclick="prevPage{{ doc.id }}()" class="px-2 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-xs">
+                                ← Prev
+                            </button>
+                            <span class="px-2 py-1 text-gray-300 text-xs">
+                                Page <span id="page-num-{{ doc.id }}">1</span> / <span id="page-count-{{ doc.id }}">?</span>
+                            </span>
+                            <button onclick="nextPage{{ doc.id }}()" class="px-2 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-xs">
+                                Next →
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-900 rounded p-4 min-h-[500px] flex items-center justify-center">
+                        <canvas id="pdf-canvas-{{ doc.id }}" class="max-w-full shadow-lg"></canvas>
+                    </div>
+
+                    <div class="mt-4 flex flex-col space-y-2">
+                        <a href="{{ url_for('serve_file', filename=doc.filename) }}" target="_blank"
+                           class="inline-flex items-center justify-center px-3 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Download PDF
+                        </a>
+                        <button onclick="openClaudeLogs('{{ doc.filename }}')"
+                                class="inline-flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                            </svg>
+                            View Claude Logs
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Document Info & Response Form -->
+                <div class="p-6">
+                    <!-- Document Header -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-white mb-2">{{ doc.filename }}</h3>
+                        <p class="text-sm text-gray-400 mb-3">Received: {{ doc.created_at }}</p>
+
+                        <div class="flex items-center space-x-2 mb-4">
+                            <span class="text-sm text-gray-400">Current Category:</span>
+                            <span class="px-3 py-1 text-xs rounded-full bg-yellow-900 text-yellow-300">
+                                {{ doc.category or 'UNCLASSIFIED' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Question/Issue -->
+                    <div class="mb-6 p-4 bg-red-900 bg-opacity-20 border border-red-700 rounded">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-red-400 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-red-300 mb-1">Classification Issue</p>
+                                <p class="text-sm text-red-200">{{ doc.question }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Classification Form -->
+                    <form method="POST" action="{{ url_for('respond', doc_id=doc.id) }}" class="space-y-4">
+                        <!-- Category Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                Select Correct Category
+                            </label>
+                            <select name="category" required
+                                    class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">-- Choose Category --</option>
+                                <option value="MEDICAL" {% if doc.category == 'MEDICAL' %}selected{% endif %}>
+                                    📋 Medical - Doctor visits, prescriptions, medical bills
+                                </option>
+                                <option value="CPS_EXPENSE" {% if doc.category == 'CPS_EXPENSE' %}selected{% endif %}>
+                                    💰 Co-Parenting Expense - Shared expenses, receipts
+                                </option>
+                                <option value="SCHOOLWORK" {% if doc.category == 'SCHOOLWORK' %}selected{% endif %}>
+                                    🎓 Schoolwork - Report cards, school documents
+                                </option>
+                                <option value="GENERAL" {% if doc.category == 'GENERAL' %}selected{% endif %}>
+                                    📄 General - Other documents
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Metadata Fields (conditional based on category) -->
+                        <div id="metadata-fields-{{ doc.id }}" class="space-y-3">
+                            <!-- Medical Metadata -->
+                            <div class="medical-fields hidden space-y-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Child Name</label>
+                                    <input type="text" name="child_name" placeholder="e.g., Jacob, Morgan"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Provider/Doctor</label>
+                                    <input type="text" name="provider" placeholder="e.g., Dr. Smith, Pediatric Associates"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Visit Date</label>
+                                    <input type="date" name="visit_date"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <!-- CPS Expense Metadata -->
+                            <div class="expense-fields hidden space-y-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Child Name</label>
+                                    <input type="text" name="expense_child" placeholder="e.g., Jacob, Morgan"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Amount</label>
+                                    <input type="text" name="amount" placeholder="e.g., $45.99"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Expense Type</label>
+                                    <input type="text" name="expense_type" placeholder="e.g., Sports, Medical, School"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <!-- School Metadata -->
+                            <div class="school-fields hidden space-y-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Child Name</label>
+                                    <input type="text" name="school_child" placeholder="e.g., Jacob, Morgan"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">Document Type</label>
+                                    <input type="text" name="school_type" placeholder="e.g., Report Card, Permission Slip"
+                                           class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Notes -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Additional Notes (Optional)
+                            </label>
+                            <textarea name="response" rows="3"
+                                      class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Any additional information about this document..."></textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex space-x-2 pt-2">
+                            <button type="submit"
+                                    class="flex-1 px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+                                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Submit & Process
+                            </button>
+                            <button type="button" onclick="skipDocument({{ doc.id }})"
+                                    class="px-4 py-3 bg-gray-700 text-white rounded hover:bg-gray-600">
+                                Skip
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Initialize PDF viewer for this document -->
+        <script>
+        (function() {
+            const docId = {{ doc.id }};
+            const pdfPath = "{{ url_for('serve_file', filename=doc.filename) }}";
+
+            let pdfDoc{{ doc.id }} = null;
+            let pageNum{{ doc.id }} = 1;
+            let pageRendering{{ doc.id }} = false;
+            let pageNumPending{{ doc.id }} = null;
+            const scale{{ doc.id }} = 1.2;
+
+            // Load PDF
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+            const loadingTask{{ doc.id }} = pdfjsLib.getDocument(pdfPath);
+            loadingTask{{ doc.id }}.promise.then((pdf) => {
+                pdfDoc{{ doc.id }} = pdf;
+                document.getElementById('page-count-{{ doc.id }}').textContent = pdf.numPages;
+                renderPage{{ doc.id }}(pageNum{{ doc.id }});
+            }).catch((error) => {
+                console.error('Error loading PDF {{ doc.id }}:', error);
+                const canvas = document.getElementById('pdf-canvas-{{ doc.id }}');
+                if (canvas) {
+                    canvas.parentElement.innerHTML = '<p class="text-red-400 text-sm">Error loading PDF</p>';
+                }
+            });
+
+            // Render page
+            function renderPage{{ doc.id }}(num) {
+                pageRendering{{ doc.id }} = true;
+                pdfDoc{{ doc.id }}.getPage(num).then((page) => {
+                    const canvas = document.getElementById('pdf-canvas-{{ doc.id }}');
+                    const ctx = canvas.getContext('2d');
+                    const viewport = page.getViewport({ scale: scale{{ doc.id }} });
+
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    const renderContext = {
+                        canvasContext: ctx,
+                        viewport: viewport
+                    };
+
+                    page.render(renderContext).promise.then(() => {
+                        pageRendering{{ doc.id }} = false;
+                        if (pageNumPending{{ doc.id }} !== null) {
+                            renderPage{{ doc.id }}(pageNumPending{{ doc.id }});
+                            pageNumPending{{ doc.id }} = null;
+                        }
+                    });
+                });
+
+                document.getElementById('page-num-{{ doc.id }}').textContent = num;
+            }
+
+            function queueRenderPage{{ doc.id }}(num) {
+                if (pageRendering{{ doc.id }}) {
+                    pageNumPending{{ doc.id }} = num;
+                } else {
+                    renderPage{{ doc.id }}(num);
+                }
+            }
+
+            window.prevPage{{ doc.id }} = function() {
+                if (pageNum{{ doc.id }} <= 1) return;
+                pageNum{{ doc.id }}--;
+                queueRenderPage{{ doc.id }}(pageNum{{ doc.id }});
+            };
+
+            window.nextPage{{ doc.id }} = function() {
+                if (pageNum{{ doc.id }} >= pdfDoc{{ doc.id }}.numPages) return;
+                pageNum{{ doc.id }}++;
+                queueRenderPage{{ doc.id }}(pageNum{{ doc.id }});
+            };
+
+            // Category-based metadata field visibility
+            const categorySelect = document.querySelector('select[name="category"]');
+            const metadataContainer = document.getElementById('metadata-fields-{{ doc.id }}');
+
+            categorySelect.addEventListener('change', function() {
+                // Hide all metadata fields
+                metadataContainer.querySelectorAll('.medical-fields, .expense-fields, .school-fields').forEach(el => {
+                    el.classList.add('hidden');
+                });
+
+                // Show relevant fields
+                if (this.value === 'MEDICAL') {
+                    metadataContainer.querySelector('.medical-fields').classList.remove('hidden');
+                } else if (this.value === 'CPS_EXPENSE') {
+                    metadataContainer.querySelector('.expense-fields').classList.remove('hidden');
+                } else if (this.value === 'SCHOOLWORK') {
+                    metadataContainer.querySelector('.school-fields').classList.remove('hidden');
+                }
+            });
+        })();
+        </script>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gray-800 rounded-lg border border-gray-700 p-12 text-center">
+        <div class="text-6xl mb-4">✓</div>
+        <h3 class="text-xl font-semibold text-white mb-2">All Caught Up!</h3>
+        <p class="text-gray-400">No documents pending clarification</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Claude Logs Side Panel -->
+<div id="claude-logs-panel" class="fixed inset-y-0 right-0 w-full md:w-2/3 lg:w-1/2 bg-gray-900 shadow-2xl transform translate-x-full transition-transform duration-300 z-50 hidden">
+    <div class="h-full flex flex-col">
+        <!-- Header -->
+        <div class="px-6 py-4 bg-gray-800 border-b border-gray-700 flex items-center justify-between">
+            <div>
+                <h3 class="text-xl font-semibold text-white">Claude Code Interaction Logs</h3>
+                <p class="text-sm text-gray-400 mt-1">Prompts and responses from classification</p>
+            </div>
+            <button onclick="closeClaudeLogs()" class="p-2 text-gray-400 hover:text-white rounded hover:bg-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <div id="claude-logs-content" class="space-y-6">
+                <p class="text-gray-500">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay -->
+<div id="claude-logs-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="closeClaudeLogs()"></div>
+
+<script>
+function skipDocument(docId) {
+    if (confirm('Skip this document? It will remain in the pending queue.')) {
+        window.location.href = "{{ url_for('pending') }}";
+    }
+}
+
+function openClaudeLogs(filename) {
+    const panel = document.getElementById('claude-logs-panel');
+    const overlay = document.getElementById('claude-logs-overlay');
+    const content = document.getElementById('claude-logs-content');
+
+    // Show panel and overlay
+    panel.classList.remove('hidden');
+    overlay.classList.remove('hidden');
+
+    // Trigger animation
+    setTimeout(() => {
+        panel.classList.remove('translate-x-full');
+    }, 10);
+
+    // Load logs
+    content.innerHTML = '<div class="text-center text-gray-400"><div class="animate-spin inline-block w-8 h-8 border-4 border-gray-600 border-t-blue-500 rounded-full"></div><p class="mt-4">Loading Claude logs...</p></div>';
+
+    fetch(`/api/claude-logs/${encodeURIComponent(filename)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.has_logs && data.logs && data.logs.length > 0) {
+                content.innerHTML = data.logs.map((log, index) => `
+                    <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+                        <div class="px-4 py-3 bg-gray-750 border-b border-gray-700 flex items-center justify-between">
+                            <div>
+                                <h4 class="font-semibold text-white">${log.prompt_type.toUpperCase()}</h4>
+                                <p class="text-xs text-gray-400">Prompt: ${log.prompt_file}</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                ${log.confidence ? `<span class="px-2 py-1 text-xs rounded bg-blue-900 text-blue-300">${(log.confidence * 100).toFixed(0)}% confidence</span>` : ''}
+                                ${log.success ? '<span class="text-green-400 text-xs">✓ Success</span>' : '<span class="text-red-400 text-xs">✗ Failed</span>'}
+                            </div>
+                        </div>
+
+                        <!-- Prompt Section -->
+                        <div class="p-4 border-b border-gray-700">
+                            <button onclick="toggleSection('prompt-${index}')" class="w-full flex items-center justify-between text-left">
+                                <span class="text-sm font-medium text-gray-300">📝 Prompt Sent</span>
+                                <svg class="w-4 h-4 text-gray-400 transform transition-transform" id="prompt-${index}-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="prompt-${index}" class="hidden mt-2">
+                                <pre class="text-xs text-gray-300 bg-gray-900 p-3 rounded overflow-x-auto">${escapeHtml(log.prompt_content)}</pre>
+                            </div>
+                        </div>
+
+                        <!-- Response Section -->
+                        <div class="p-4">
+                            <button onclick="toggleSection('response-${index}')" class="w-full flex items-center justify-between text-left">
+                                <span class="text-sm font-medium text-gray-300">💬 Claude Response</span>
+                                <svg class="w-4 h-4 text-gray-400 transform transition-transform" id="response-${index}-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="response-${index}" class="hidden mt-2">
+                                <pre class="text-xs text-gray-300 bg-gray-900 p-3 rounded overflow-x-auto">${escapeHtml(log.response_content)}</pre>
+                            </div>
+                        </div>
+
+                        ${log.error_message ? `
+                        <div class="px-4 py-3 bg-red-900 bg-opacity-20 border-t border-red-700">
+                            <p class="text-xs text-red-300">Error: ${escapeHtml(log.error_message)}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } else {
+                content.innerHTML = `
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="text-gray-400 text-lg mb-2">No Claude Logs Available</p>
+                        <p class="text-gray-500 text-sm">${data.message || 'This document was processed before logging was implemented.'}</p>
+                        <p class="text-gray-500 text-sm mt-4">Future document processing will capture Claude interactions here.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            content.innerHTML = `
+                <div class="text-center py-12">
+                    <p class="text-red-400">Error loading logs: ${err.message}</p>
+                </div>
+            `;
+        });
+}
+
+function closeClaudeLogs() {
+    const panel = document.getElementById('claude-logs-panel');
+    const overlay = document.getElementById('claude-logs-overlay');
+
+    panel.classList.add('translate-x-full');
+
+    setTimeout(() => {
+        panel.classList.add('hidden');
+        overlay.classList.add('hidden');
+    }, 300);
+}
+
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const icon = document.getElementById(sectionId + '-icon');
+
+    section.classList.toggle('hidden');
+    icon.classList.toggle('rotate-180');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

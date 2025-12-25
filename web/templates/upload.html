@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Upload - Scan Processor{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <h2 class="text-3xl font-bold text-white">Manual Upload</h2>
+        <p class="mt-2 text-gray-400">Upload PDF documents for processing</p>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="bg-gray-800 rounded-lg border-2 border-dashed border-gray-600 p-12">
+        <div id="upload-zone" class="text-center">
+            <div class="mb-4 text-6xl">📤</div>
+            <h3 class="text-xl font-semibold text-white mb-2">Drag and drop PDF files here</h3>
+            <p class="text-gray-400 mb-4">or click to browse</p>
+            <input type="file" id="file-input" accept=".pdf" multiple class="hidden">
+            <button id="browse-button" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                Browse Files
+            </button>
+
+            <!-- Dev Mode Toggle -->
+            <div class="mt-6 inline-flex items-center space-x-3 px-4 py-3 bg-gray-700 rounded-lg">
+                <input type="checkbox" id="dev-mode-toggle" class="w-4 h-4 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500">
+                <label for="dev-mode-toggle" class="text-sm text-gray-300 cursor-pointer select-none">
+                    <span class="font-semibold">🔧 Development Mode</span>
+                    <span class="text-gray-400 text-xs block">Test without uploading to Paperless/BasicMemory</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Upload Progress -->
+        <div id="upload-progress" class="hidden mt-6">
+            <div class="space-y-3" id="progress-list"></div>
+        </div>
+
+        <!-- Processing Results (Dev Mode) -->
+        <div id="processing-results" class="hidden mt-6">
+            <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                <h4 class="text-lg font-semibold text-white mb-3">🔧 Processing Results (Development Mode)</h4>
+                <div id="results-content" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Instructions -->
+    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <h3 class="text-lg font-semibold text-white mb-4">Upload Instructions</h3>
+        <ul class="space-y-2 text-gray-300">
+            <li class="flex items-start">
+                <span class="text-blue-400 mr-2">•</span>
+                <span>Only PDF files are supported (max 50MB per file)</span>
+            </li>
+            <li class="flex items-start">
+                <span class="text-blue-400 mr-2">•</span>
+                <span>Files are automatically classified and routed for processing</span>
+            </li>
+            <li class="flex items-start">
+                <span class="text-blue-400 mr-2">•</span>
+                <span>Medical and expense documents will create BasicMemory notes</span>
+            </li>
+            <li class="flex items-start">
+                <span class="text-blue-400 mr-2">•</span>
+                <span>All documents are uploaded to Paperless-NGX</span>
+            </li>
+            <li class="flex items-start">
+                <span class="text-blue-400 mr-2">•</span>
+                <span>You'll receive a Pushover notification when processing completes</span>
+            </li>
+            <li class="flex items-start">
+                <span class="text-blue-400 mr-2">•</span>
+                <span>If clarification is needed, the document will appear in the Pending queue</span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Recent Uploads -->
+    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <h3 class="text-lg font-semibold text-white mb-4">Recent Uploads</h3>
+        <div id="recent-uploads" class="space-y-2">
+            <p class="text-gray-500 text-sm">No recent uploads</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+{% endblock %}

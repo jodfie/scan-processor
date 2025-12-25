@@ -1,0 +1,57 @@
+{
+  "personal_medical": {
+    "provider": "Dr. Smith Family Medicine",
+    "date": "2025-09-15",
+    "amount": 125.50,
+    "type": "medical_bill",
+    "description": "Office visit and lab work"
+  },
+  "personal_expense": {
+    "vendor": "The Bistro Restaurant",
+    "date": "2025-12-15",
+    "amount": 45.75,
+    "category": "dining",
+    "description": "Dinner receipt"
+  },
+  "utility_electric": {
+    "utility_type": "electric",
+    "provider": "City Power & Light",
+    "billing_date": "2025-12-01",
+    "due_date": "2025-12-21",
+    "amount": 142.37,
+    "account_number": "1234567890"
+  },
+  "utility_water": {
+    "utility_type": "water",
+    "provider": "City Water & Sewer",
+    "billing_date": "2025-12-01",
+    "due_date": "2025-12-21",
+    "amount": 85.20,
+    "account_number": "0987654321"
+  },
+  "auto_insurance": {
+    "insurance_company": "State Farm",
+    "policy_number": "POL-12345678",
+    "vehicle": "2020 Honda Accord",
+    "effective_date": "2025-01-01",
+    "expiration_date": "2026-01-01",
+    "premium": 1200.00
+  },
+  "auto_maintenance": {
+    "service_type": "oil_change",
+    "shop": "Jiffy Lube",
+    "date": "2025-11-15",
+    "vehicle": "2020 Honda Accord",
+    "mileage": 45000,
+    "cost": 65.99
+  },
+  "auto_registration": {
+    "registration_number": "REG-ABC123",
+    "vehicle": "2020 Honda Accord",
+    "vin": "1HGCV1F3XLA123456",
+    "license_plate": "XYZ-1234",
+    "renewal_date": "2025-03-15",
+    "expiration_date": "2026-03-15",
+    "fee": 95.00
+  }
+}

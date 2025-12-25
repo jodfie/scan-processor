@@ -1,0 +1,46 @@
+{
+  "classification_responses": {
+    "personal_medical": {
+      "category": "PERSONAL-MEDICAL",
+      "confidence": 0.95,
+      "is_cps_related": false,
+      "reasoning": "This is a personal medical document containing healthcare provider information, service dates, and billing details."
+    },
+    "cps_medical": {
+      "category": "CPS-MEDICAL",
+      "confidence": 0.93,
+      "is_cps_related": true,
+      "reasoning": "This medical document relates to a child's healthcare and should be tracked in the co-parenting system."
+    },
+    "personal_expense": {
+      "category": "PERSONAL-EXPENSE",
+      "confidence": 0.92,
+      "is_cps_related": false,
+      "reasoning": "This is a personal expense receipt or invoice for goods/services purchased."
+    },
+    "utility": {
+      "category": "UTILITY",
+      "confidence": 0.88,
+      "is_cps_related": false,
+      "reasoning": "This is a utility bill for electric, water, gas, internet, or phone service."
+    },
+    "auto_insurance": {
+      "category": "AUTO-INSURANCE",
+      "confidence": 0.90,
+      "is_cps_related": false,
+      "reasoning": "This is an automobile insurance policy, declaration page, or premium notice."
+    },
+    "auto_maintenance": {
+      "category": "AUTO-MAINTENANCE",
+      "confidence": 0.87,
+      "is_cps_related": false,
+      "reasoning": "This is a vehicle maintenance or service record."
+    },
+    "auto_registration": {
+      "category": "AUTO-REGISTRATION",
+      "confidence": 0.89,
+      "is_cps_related": false,
+      "reasoning": "This is a vehicle registration renewal or inspection certificate."
+    }
+  }
+}
