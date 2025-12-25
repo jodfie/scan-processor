@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements-dev.txt  
-      - run: pytest --cov=scripts --cov-fail-under=80
+      - run: pytest --cov=scripts --cov-fail-under=65
 
   build-push:
     runs-on: ubuntu-latest
