@@ -869,4 +869,5 @@ def server_error(e):
 
 if __name__ == '__main__':
     # Run with Socket.IO
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    # Note: Using threading async_mode for better Python 3.12 compatibility
+    socketio.run(app, host='0.0.0.0', port=5555, debug=False, allow_unsafe_werkzeug=True)
