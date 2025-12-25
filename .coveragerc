@@ -13,7 +13,8 @@ omit =
 precision = 2
 show_missing = True
 skip_covered = False
-fail_under = 65  # TODO: Increase to 80 after adding CPS method tests
+# TODO: Increase to 80 after adding tests for CPS methods
+fail_under = 65
 
 [html]
 directory = htmlcov
