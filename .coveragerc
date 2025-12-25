@@ -1,0 +1,19 @@
+# Coverage.py configuration for scan-processor
+
+[run]
+source = scripts
+omit =
+    */tests/*
+    */test_*
+    */__pycache__/*
+    scripts/generate_samples.py
+    scripts/validate_samples.py
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+fail_under = 65  # TODO: Increase to 80 after adding CPS method tests
+
+[html]
+directory = htmlcov
